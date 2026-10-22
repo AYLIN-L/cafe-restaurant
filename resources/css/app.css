@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "tailwindcss";
+
+
+@plugin "@tailwindcss/forms";
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+  --color-coffee: #3B2314;
+  --color-amber: #D97706;
+  --color-amber-dark: #B45309;
+  --color-amber-light: #F5B455;
+  --color-cream: #FDFBF7;
+  --color-charcoal: #1F2937;
+
+  --font-display: "DM Serif Display", serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---------- Animations de l'administration ---------- */
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Apparition progressive : délai réglable avec style="--d: .2s" */
+.reveal {
+  opacity: 0;
+  animation: reveal .6s cubic-bezier(.22, 1, .36, 1) forwards;
+  animation-delay: var(--d, 0s);
+}
+/* Barre qui se déploie depuis la gauche */
+.grow-x {
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: grow 1s cubic-bezier(.22, 1, .36, 1) forwards;
+  animation-delay: var(--d, .3s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .grow-x { animation: none; opacity: 1; transform: none; }
+}
