@@ -5,7 +5,7 @@
         {{-- Lien retour --}}
         <a href="{{ route('admin.tables.index') }}"
            class="inline-flex items-center gap-1.5 text-sm font-medium text-charcoal/60 transition hover:text-amber-dark">
-            <x-icon name="arrow-right" class="h-4 w-4 rotate-180" />
+            <x-lucide-arrow-right class="h-4 w-4 rotate-180" />
             Retour aux tables
         </a>
 

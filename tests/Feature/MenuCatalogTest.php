@@ -62,7 +62,8 @@ it('renders the full catalog page', function () {
     $response = $this->get('/menu');
 
     $response->assertOk();
-    $response->assertSee('Notre carte');
+    // Le titre est composé de deux éléments imbriqués (« Notre » + « carte »).
+    $response->assertSeeInOrder(['Notre', 'carte'], false);
     $response->assertSee('Tarte maison');
 });
 

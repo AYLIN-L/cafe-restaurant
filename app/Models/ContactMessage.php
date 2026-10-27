@@ -8,8 +8,10 @@ class ContactMessage extends Model
 {
     protected $fillable = [
         'user_id',
+        'name',
+        'email',
         'subject',
-        'message'
+        'message',
     ];
 
     protected $table = 'contact_messages';

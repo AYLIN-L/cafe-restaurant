@@ -15,7 +15,8 @@ class MenuController extends Controller
     {
         $menus = Menu::with('category')
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.menus.index', compact('menus'));
     }

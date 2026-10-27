@@ -12,7 +12,7 @@
 
         <a href="{{ route('admin.menus.create') }}"
            class="inline-flex items-center gap-2 self-start rounded-lg bg-coffee px-4 py-2.5 text-sm font-semibold text-cream shadow-sm transition hover:bg-amber-dark">
-            <x-icon name="plus" class="h-4 w-4" />
+            <x-lucide-plus class="h-4 w-4" />
             Ajouter un plat
         </a>
     </div>
@@ -26,7 +26,7 @@
             </p>
             <a href="{{ route('admin.menus.create') }}"
                class="mt-6 inline-flex items-center gap-2 rounded-xl bg-amber px-5 py-3 text-sm font-semibold text-white transition duration-200 hover:bg-amber-dark">
-                <x-icon name="plus" class="h-4 w-4" />
+                <x-lucide-plus class="h-4 w-4" />
                 Ajouter un plat
             </a>
         </div>

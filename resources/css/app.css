@@ -49,5 +49,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal, .grow-x { animation: none; opacity: 1; transform: none; }
+  .reveal, .grow-x { animation: none; opacity: 1; transform: none}
 }

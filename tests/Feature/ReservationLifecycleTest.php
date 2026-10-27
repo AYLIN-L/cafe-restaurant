@@ -210,3 +210,71 @@ it('never releases a blocked client with the scheduled command', function () {
 
     expect($client->fresh()->isBookingBlocked())->toBeFalse();
 });
+
+// ---------------------------------------------------------------------------
+// Workflow administrateur : annulation et masquage après le créneau
+// ---------------------------------------------------------------------------
+
+it('cancels a confirmed reservation while its time slot has not ended', function () {
+    $admin = lifecycleAdmin();
+    $client = lifecycleClient();
+
+    $reservation = lifecyclePending($client, ['status' => Reservation::STATUS_CONFIRMED]);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.status', $reservation), ['status' => Reservation::STATUS_CANCELLED])
+        ->assertSessionHas('success');
+
+    expect($reservation->fresh()->status)->toBe(Reservation::STATUS_CANCELLED)
+        ->and($reservation->fresh()->table_id)->toBeNull()
+        ->and($reservation->fresh()->active_date)->toBeNull();
+});
+
+it('refuses to cancel a confirmed reservation once its time slot has ended', function () {
+    $admin = lifecycleAdmin();
+    $client = lifecycleClient();
+
+    $reservation = lifecyclePending($client, [
+        'reservation_date' => now()->subDay()->toDateString(),
+        'active_date' => now()->subDay()->toDateString(),
+        'status' => Reservation::STATUS_CONFIRMED,
+    ]);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.status', $reservation), ['status' => Reservation::STATUS_CANCELLED])
+        ->assertSessionHas('error');
+
+    expect($reservation->fresh()->status)->toBe(Reservation::STATUS_CONFIRMED);
+});
+
+it('keeps a hidden reservation out of the active list after a reload', function () {
+    $admin = lifecycleAdmin();
+    $client = lifecycleClient(['name' => 'Client Masqué Maintenant']);
+
+    $reservation = lifecyclePending($client, [
+        'reservation_date' => now()->subDay()->toDateString(),
+        'active_date' => null,
+        'status' => Reservation::STATUS_CONFIRMED,
+        'attendance' => Reservation::ATTENDANCE_PRESENT,
+    ]);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.hide', $reservation))
+        ->assertSessionHas('success');
+
+    // Deux rechargements successifs : la réservation ne réapparaît jamais.
+    $this->actingAs($admin)
+        ->get(route('admin.reservations.index'))
+        ->assertOk()
+        ->assertDontSee('Client Masqué Maintenant');
+
+    $this->actingAs($admin)
+        ->get(route('admin.reservations.index'))
+        ->assertOk()
+        ->assertDontSee('Client Masqué Maintenant')
+        ->assertSee('Aucune réservation pour le moment', false);
+
+    // La donnée existe toujours en base.
+    expect(Reservation::find($reservation->id))->not->toBeNull()
+        ->and($reservation->fresh()->hidden_at)->not->toBeNull();
+});

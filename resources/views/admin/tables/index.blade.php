@@ -1,16 +1,8 @@
 <x-admin-layout title="Gestion de la salle">
 
     @php
-        $totalSeats = $tables->sum('capacity');
-        $activeTables = $tables->where('is_active', true)->count();
-
-        $states = $tables->mapWithKeys(fn ($table) => [$table->id => $table->stateAt($now)]);
-
-        $occupiedNow = $states->filter(fn ($state) => in_array($state, ['walk_in', 'occupied'], true))->count();
-        $reservedNow = $states->filter(fn ($state) => $state === 'reserved')->count();
-        $freeNow = $states->filter(fn ($state) => $state === 'free')->count();
-        $seatsFree = $tables->filter(fn ($table) => $states[$table->id] === 'free')->sum('capacity');
-
+        // Les statistiques ($stats) et les états ($states) sont calculés par
+        // le contrôleur : la vue ne fait que les afficher.
         $stateMeta = [
             'inactive' => ['label' => 'Hors service', 'classes' => 'bg-gray-100 text-gray-500 ring-gray-200', 'dot' => 'bg-gray-400'],
             'walk_in'  => ['label' => 'Occupée (sans réservation)', 'classes' => 'bg-amber/10 text-amber-dark ring-amber/20', 'dot' => 'bg-amber'],
@@ -39,57 +31,94 @@
 
         <a href="{{ route('admin.tables.create') }}"
            class="inline-flex items-center gap-2 self-start rounded-lg bg-coffee px-4 py-2.5 text-sm font-semibold text-cream shadow-sm transition hover:bg-amber-dark">
-            <x-icon name="plus" class="h-4 w-4" />
+            <x-lucide-plus class="h-4 w-4" />
             Ajouter une table
         </a>
     </div>
 
-    {{-- ========== STATISTIQUES ========== --}}
-    <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    {{-- ========== STATISTIQUES DE LA SALLE ========== --}}
+    <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+        {{-- Tables en service --}}
         <div class="rounded-2xl border border-coffee/10 bg-white p-5 shadow-sm">
             <div class="flex items-center gap-3">
-                <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-cream text-amber-dark ring-1 ring-coffee/10">
-                    <x-icon name="table" class="h-5 w-5" />
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cream text-amber-dark ring-1 ring-coffee/10">
+                    <x-lucide-table-2 class="h-5 w-5" />
                 </span>
                 <div>
-                    <p class="text-xs font-medium uppercase tracking-wide text-charcoal/50">Tables actives</p>
-                    <p class="font-display text-2xl text-coffee">{{ $activeTables }} / {{ $tables->count() }}</p>
+                    <p class="text-xs font-medium uppercase tracking-wide text-charcoal/50">Tables en service</p>
+                    <p class="font-display text-2xl text-coffee">{{ $stats['tablesActive'] }} / {{ $stats['tablesTotal'] }}</p>
+                    <p class="text-xs text-charcoal/50">{{ $stats['tablesInactive'] }} hors service</p>
                 </div>
             </div>
         </div>
 
+        {{-- Places assises : les tables en service font référence --}}
         <div class="rounded-2xl border border-coffee/10 bg-white p-5 shadow-sm">
             <div class="flex items-center gap-3">
-                <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-cream text-amber-dark ring-1 ring-coffee/10">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cream text-amber-dark ring-1 ring-coffee/10">
                     <x-lucide-users class="h-5 w-5" />
                 </span>
                 <div>
                     <p class="text-xs font-medium uppercase tracking-wide text-charcoal/50">Places assises</p>
-                    <p class="font-display text-2xl text-coffee">{{ $totalSeats }}</p>
+                    <p class="font-display text-2xl text-coffee">{{ $stats['seatsActive'] }}</p>
+                    <p class="text-xs text-charcoal/50">{{ $stats['seatsTotal'] }} au total (tables hors service incluses)</p>
                 </div>
             </div>
         </div>
 
+        {{-- Tables occupées --}}
         <div class="rounded-2xl border border-coffee/10 bg-white p-5 shadow-sm">
             <div class="flex items-center gap-3">
-                <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-cream text-emerald-600 ring-1 ring-coffee/10">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cream text-amber-dark ring-1 ring-coffee/10">
                     <x-lucide-armchair class="h-5 w-5" />
                 </span>
                 <div>
                     <p class="text-xs font-medium uppercase tracking-wide text-charcoal/50">Occupées maintenant</p>
-                    <p class="font-display text-2xl text-coffee">{{ $occupiedNow }}</p>
+                    <p class="font-display text-2xl text-coffee">{{ $stats['occupied'] }}</p>
+                    <p class="text-xs text-charcoal/50">réservation en cours ou client installé</p>
                 </div>
             </div>
         </div>
 
+        {{-- Tables réservées --}}
         <div class="rounded-2xl border border-coffee/10 bg-white p-5 shadow-sm">
             <div class="flex items-center gap-3">
-                <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-cream text-emerald-600 ring-1 ring-coffee/10">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cream text-amber-dark ring-1 ring-coffee/10">
+                    <x-lucide-clock class="h-5 w-5" />
+                </span>
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wide text-charcoal/50">Réservées</p>
+                    <p class="font-display text-2xl text-coffee">{{ $stats['reserved'] }}</p>
+                    <p class="text-xs text-charcoal/50">prochaine réservation à venir</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- Tables libres --}}
+        <div class="rounded-2xl border border-coffee/10 bg-white p-5 shadow-sm">
+            <div class="flex items-center gap-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cream text-amber-dark ring-1 ring-coffee/10">
                     <x-lucide-circle-check class="h-5 w-5" />
                 </span>
                 <div>
-                    <p class="text-xs font-medium uppercase tracking-wide text-charcoal/50">Libres · places</p>
-                    <p class="font-display text-2xl text-coffee">{{ $freeNow }} · {{ $seatsFree }}</p>
+                    <p class="text-xs font-medium uppercase tracking-wide text-charcoal/50">Libres</p>
+                    <p class="font-display text-2xl text-coffee">{{ $stats['free'] }}</p>
+                    <p class="text-xs text-charcoal/50">{{ $stats['seatsFree'] }} places disponibles</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- Clients sans réservation --}}
+        <div class="rounded-2xl border border-coffee/10 bg-white p-5 shadow-sm">
+            <div class="flex items-center gap-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cream text-amber-dark ring-1 ring-coffee/10">
+                    <x-lucide-user-plus class="h-5 w-5" />
+                </span>
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wide text-charcoal/50">Clients sans réservation</p>
+                    <p class="font-display text-2xl text-coffee">{{ $stats['walkIns'] }}</p>
+                    <p class="text-xs text-charcoal/50">installés en salle</p>
                 </div>
             </div>
         </div>
@@ -102,7 +131,7 @@
             Le système attribue automatiquement la plus petite table libre, sans conflit avec les réservations à venir.
         </p>
 
-        <form action="{{ route('admin.walkins.store') }}" method="POST" class="mt-4 grid gap-4 sm:grid-cols-[7rem_8rem_1fr_auto] sm:items-end">
+        <form action="{{ route('admin.walkins.store') }}" method="POST" class="mt-4 grid gap-4 sm:grid-cols-[7rem_8rem_1fr_auto] sm:items-start">
             @csrf
             <div>
                 <label for="guests_count" class="mb-2 block text-sm font-semibold text-coffee">Convives</label>
@@ -121,8 +150,8 @@
                 @error('seated_time')
                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                 @enderror
-                <p class="mt-2 text-xs text-charcoal/50">
-                    Par défaut, l'heure actuelle. La table reste bloquée jusqu'à sa libération explicite.
+                <p class="mt-1.5 text-xs text-charcoal/50">
+                    Par défaut, l'heure actuelle du restaurant. La table reste bloquée jusqu'à sa libération explicite.
                 </p>
             </div>
             <div>
@@ -136,8 +165,8 @@
                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>
-            <button type="submit"
-                class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-amber/40">
+            <button type="submit" class="sm:self-end
+                inline-flex items-center justify-center gap-2 rounded-xl bg-amber px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-amber/40">
                 <x-lucide-user-plus class="h-4 w-4" />
                 Installer
             </button>
@@ -191,7 +220,7 @@
             <p class="mt-2 text-sm text-charcoal/60">Ajoutez vos tables pour gérer la salle et les réservations.</p>
             <a href="{{ route('admin.tables.create') }}"
                class="mt-6 inline-flex items-center gap-2 rounded-xl bg-amber px-5 py-3 text-sm font-semibold text-white transition duration-200 hover:bg-amber-dark">
-                <x-icon name="plus" class="h-4 w-4" />
+                <x-lucide-plus class="h-4 w-4" />
                 Ajouter une table
             </a>
         </div>
@@ -207,7 +236,7 @@
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex items-center gap-3">
                             <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cream text-amber-dark ring-1 ring-coffee/10">
-                                <x-icon name="table" class="h-5 w-5" />
+                                <x-lucide-table-2 class="h-5 w-5" />
                             </span>
                             <div>
                                 <h2 class="font-display text-xl text-coffee">Table n°{{ $table->number }}</h2>

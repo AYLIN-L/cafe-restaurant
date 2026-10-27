@@ -13,10 +13,16 @@
 <body class="bg-cream font-sans text-charcoal antialiased">
 
     @php
+        $restaurant = config('restaurant');
+        $mapQuery = trim((string) data_get($restaurant, 'address.map_query', ''));
+        $directionsUrl = $mapQuery !== ''
+            ? 'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($mapQuery)
+            : null;
+
         $links = [
             ['label' => 'Accueil', 'url' => route('home'), 'active' => request()->routeIs('home')],
             ['label' => 'Menu', 'url' => route('home') . '#menu', 'active' => false],
-            ['label' => 'Contact', 'url' => route('home') . '#contact', 'active' => false],
+            ['label' => 'Contact', 'url' => route('contact.create'), 'active' => request()->routeIs('contact.create')],
         ];
     @endphp
 
@@ -78,7 +84,7 @@
                         @csrf
                         <button type="submit"
                                 class="inline-flex items-center gap-2 self-start rounded-lg bg-coffee px-4 py-2.5 text-sm font-semibold text-cream shadow-sm transition hover:bg-amber-dark">
-                            <x-icon name="logout" class="h-4 w-4" />
+                            <x-lucide-log-out class="h-4 w-4" />
                             Déconnexion
                         </button>
                     </form>
@@ -90,8 +96,8 @@
                     class="rounded-lg p-2 text-coffee transition-colors hover:bg-coffee/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber lg:hidden"
                     :aria-expanded="open ? 'true' : 'false'" aria-controls="mobile-menu"
                     :aria-label="open ? 'Fermer le menu' : 'Ouvrir le menu'">
-                <x-icon name="bars" class="h-6 w-6" x-show="!open" />
-                <x-icon name="close" class="h-6 w-6" x-show="open" style="display: none;" />
+                <x-lucide-menu class="h-6 w-6" x-show="!open" />
+                <x-lucide-x class="h-6 w-6" x-show="open" style="display: none;" />
             </button>
         </nav>
 
@@ -142,7 +148,7 @@
                         @csrf
                         <button type="submit"
                                class="inline-flex items-center gap-2 self-start rounded-lg bg-coffee px-4 py-2.5 text-sm font-semibold text-cream shadow-sm transition hover:bg-amber-dark">
-                            <x-icon name="logout" class="h-4 w-4" />
+                            <x-lucide-log-out class="h-4 w-4" />
                             Déconnexion
                         </button>
                     </form>
@@ -178,7 +184,7 @@
                     <ul class="mt-4 space-y-2.5 text-sm">
                         <li><a href="{{ route('home') }}" class="transition-colors hover:text-amber-light">Accueil</a></li>
                         <li><a href="{{ route('home') }}#menu" class="transition-colors hover:text-amber-light">Menu</a></li>
-                        <li><a href="{{ route('home') }}#contact" class="transition-colors hover:text-amber-light">Contact</a></li>
+                        <li><a href="{{ route('contact.create') }}" class="transition-colors hover:text-amber-light">Contact</a></li>
                         <li><a href="{{ route('reservations.index') }}" class="transition-colors hover:text-amber-light">Réservations</a></li>
                     </ul>
                 </div>
@@ -205,14 +211,29 @@
                                 <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" />
                                 <circle cx="12" cy="10" r="3" />
                             </svg>
-                            <span>42 XXX XXX</span>
+                            @if ($directionsUrl)
+                                <a href="{{ $directionsUrl }}" target="_blank" rel="noopener noreferrer"
+                                   class="leading-6 transition-colors hover:text-amber-light">
+                                    {{ $restaurant['address']['line1'] }}<br>
+                                    <span class="text-cream/50">{{ $restaurant['address']['district'] }}, {{ $restaurant['address']['postal_code'] }} {{ $restaurant['address']['city'] }}</span>
+                                </a>
+                            @else
+                                <span class="leading-6">
+                                    {{ $restaurant['address']['line1'] }}<br>
+                                    <span class="text-cream/50">{{ $restaurant['address']['district'] }}, {{ $restaurant['address']['postal_code'] }} {{ $restaurant['address']['city'] }}</span>
+                                </span>
+                            @endif
                         </li>
                         <li class="flex items-center gap-3">
                             {{-- Téléphone --}}
                             <svg class="h-[18px] w-[18px] shrink-0 text-amber-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z" />
                             </svg>
-                            <a href="tel:+212000000000" class="transition-colors hover:text-amber-light">+212 00 00 00 00</a>
+                            @if (($restaurant['phone'] ?? '') !== '' && $restaurant['phone'] !== 'XXXXXX')
+                                <a href="tel:{{ preg_replace('/\s+/', '', $restaurant['phone']) }}" class="transition-colors hover:text-amber-light">{{ $restaurant['phone'] }}</a>
+                            @else
+                                <span>{{ $restaurant['phone'] ?? 'XXXXXX' }} <span class="text-xs text-cream/40">(à confirmer)</span></span>
+                            @endif
                         </li>
                         <li class="flex items-center gap-3">
                             {{-- E-mail --}}
@@ -220,7 +241,11 @@
                                 <rect x="2" y="4" width="20" height="16" rx="2" />
                                 <path d="m22 7-10 6L2 7" />
                             </svg>
-                            <a href="mailto:contact@cafe-resto.ma" class="transition-colors hover:text-amber-light">contact@cafe-resto.ma</a>
+                            @if (($restaurant['email'] ?? '') !== '' && $restaurant['email'] !== 'XXXXXX')
+                                <a href="mailto:{{ $restaurant['email'] }}" class="break-all transition-colors hover:text-amber-light">{{ $restaurant['email'] }}</a>
+                            @else
+                                <span>{{ $restaurant['email'] ?? 'XXXXXX' }} <span class="text-xs text-cream/40">(à confirmer)</span></span>
+                            @endif
                         </li>
                     </ul>
                 </div>

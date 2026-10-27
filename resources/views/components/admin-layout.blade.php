@@ -1,21 +1,22 @@
 @props(['title' => 'Administration'])
 @php
     // Navigation : modifie ici pour ajouter ou retirer un lien
+    // Les icônes proviennent du jeu Lucide (composants <x-lucide-...>).
     $nav = [
         'Pilotage' => [
-            ['label' => 'Tableau de bord', 'route' => 'admin.dashboard',          'match' => 'admin.dashboard',      'icon' => 'squares'],
+            ['label' => 'Tableau de bord', 'route' => 'admin.dashboard',          'match' => 'admin.dashboard',      'icon' => 'layout-dashboard'],
         ],
         'Carte' => [
-            ['label' => 'Plats',           'route' => 'admin.menus.index',        'match' => 'admin.menus.*',        'icon' => 'book'],
+            ['label' => 'Plats',           'route' => 'admin.menus.index',        'match' => 'admin.menus.*',        'icon' => 'utensils'],
             ['label' => 'Catégories',      'route' => 'admin.categories.index',   'match' => 'admin.categories.*',   'icon' => 'tag'],
         ],
         'Clientèle' => [
-            ['label' => 'Réservations',    'route' => 'admin.reservations.index', 'match' => 'admin.reservations.*', 'icon' => 'calendar'],
-            ['label' => 'Commentaires',    'route' => 'admin.comments.index',     'match' => 'admin.comments.*',     'icon' => 'chat'],
+            ['label' => 'Réservations',    'route' => 'admin.reservations.index', 'match' => 'admin.reservations.*', 'icon' => 'calendar-days'],
+            ['label' => 'Commentaires',    'route' => 'admin.comments.index',     'match' => 'admin.comments.*',     'icon' => 'message-square'],
             ['label' => 'Clients',         'route' => 'admin.users.index',        'match' => 'admin.users.*',        'icon' => 'users'],
         ],
         'Salle' => [
-            ['label' => 'Tables',          'route' => 'admin.tables.index',       'match' => 'admin.tables.*',       'icon' => 'table'],
+            ['label' => 'Tables',          'route' => 'admin.tables.index',       'match' => 'admin.tables.*',       'icon' => 'table-2'],
         ],
     ];
 
@@ -58,7 +59,7 @@
                 <span class="font-display text-xl leading-none text-coffee">Café Resto</span>
             </a>
             <button type="button" @click="sidebar = false" class="rounded-md p-1.5 text-charcoal/50 hover:bg-coffee/5 lg:hidden" aria-label="Fermer le menu">
-                <x-icon name="close" class="h-5 w-5" />
+                <x-lucide-x class="h-5 w-5" />
             </button>
         </div>
 
@@ -77,8 +78,8 @@
                                 {{-- Repère de la page active --}}
                                 <span class="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-amber transition duration-300
                                              {{ $active ? '' : 'scale-y-0 group-hover:scale-y-50' }}"></span>
-                                <x-icon :name="$item['icon']"
-                                        class="h-5 w-5 shrink-0 transition-colors duration-200 {{ $active ? 'text-amber-dark' : 'text-charcoal/40 group-hover:text-coffee' }}" />
+                                <x-dynamic-component :component="'lucide-'.$item['icon']"
+                                                        class="h-5 w-5 shrink-0 transition-colors duration-200 {{ $active ? 'text-amber-dark' : 'text-charcoal/40 group-hover:text-coffee' }}" />
                                 {{ $item['label'] }}
                             </a>
                         @endforeach
@@ -100,7 +101,7 @@
                 @csrf
                 <button type="submit"
                         class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-charcoal/70 transition-colors hover:bg-red-50 hover:text-red-700">
-                    <x-icon name="logout" class="h-5 w-5" />
+                    <x-lucide-log-out class="h-5 w-5" />
                     Déconnexion
                 </button>
             </form>
@@ -111,11 +112,40 @@
     <div class="lg:pl-64">
 
         {{-- Barre du haut --}}
-        <header class="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-coffee/10 bg-cream px-4 sm:px-6 lg:px-8">
+        <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-coffee/10 bg-cream px-4 sm:gap-4 sm:px-6 lg:px-8">
             <button type="button" @click="sidebar = true"
                     class="rounded-md p-2 text-coffee hover:bg-coffee/5 lg:hidden" aria-label="Ouvrir le menu">
-                <x-icon name="bars" class="h-6 w-6" />
+                <x-lucide-menu class="h-6 w-6" />
             </button>
+
+            {{-- Notifications : à gauche du titre « Administration / … » --}}
+            <div class="flex items-center gap-2">
+                <a href="{{ route('admin.reservations.index', ['status' => 'pending']) }}"
+                   title="Réservations en attente de traitement"
+                   aria-label="{{ $pendingReservations }} réservation{{ $pendingReservations > 1 ? 's' : '' }} en attente"
+                   class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 transition
+                          {{ $pendingReservations > 0
+                                ? 'border-amber/40 bg-amber/10 text-amber-dark hover:bg-amber/20'
+                                : 'border-coffee/10 bg-white text-charcoal/50 hover:border-coffee/25' }}">
+                    <x-lucide-calendar-clock class="h-4 w-4" />
+                    <span class="hidden text-xs font-semibold sm:inline">Réservations</span>
+                    <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold
+                                 {{ $pendingReservations > 0 ? 'bg-amber text-white' : 'bg-coffee/10 text-charcoal/60' }}">{{ $pendingReservations }}</span>
+                </a>
+
+                <a href="{{ route('admin.comments.index', ['filter' => 'pending']) }}"
+                   title="Commentaires à modérer"
+                   aria-label="{{ $pendingComments }} commentaire{{ $pendingComments > 1 ? 's' : '' }} à modérer"
+                   class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 transition
+                          {{ $pendingComments > 0
+                                ? 'border-amber/40 bg-amber/10 text-amber-dark hover:bg-amber/20'
+                                : 'border-coffee/10 bg-white text-charcoal/50 hover:border-coffee/25' }}">
+                    <x-lucide-message-square class="h-4 w-4" />
+                    <span class="hidden text-xs font-semibold sm:inline">Commentaires</span>
+                    <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold
+                                 {{ $pendingComments > 0 ? 'bg-amber text-white' : 'bg-coffee/10 text-charcoal/60' }}">{{ $pendingComments }}</span>
+                </a>
+            </div>
 
             <div class="flex items-center gap-2 text-sm">
                 <span class="hidden text-charcoal/50 sm:inline">Administration</span>
@@ -125,8 +155,8 @@
 
             <a href="{{ route('home') }}" target="_blank"
                class="ml-auto inline-flex items-center gap-2 rounded-lg border border-coffee/15 px-3 py-1.5 text-sm font-medium text-coffee transition hover:border-amber hover:text-amber-dark">
-                Voir le site
-                <x-icon name="external" class="h-4 w-4" />
+                <span class="hidden sm:inline">Voir le site</span>
+                <x-lucide-external-link class="h-4 w-4" />
             </a>
         </header>
 

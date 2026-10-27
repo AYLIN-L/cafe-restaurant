@@ -1,15 +1,17 @@
 @php
     $statuses = config('reservations.statuses');
-    // « Terminée » est un statut dérivé du temps, pas une valeur stockée :
-    // on l'affiche dans les badges mais pas comme filtre de recherche.
-    $filterStatuses = collect($statuses)->except('completed');
-    // « Masquées » est un filtre d'affichage : ces réservations sont
-    // conservées mais retirées de la liste par défaut.
-    $filterOptions = $filterStatuses->put('hidden', [
-        'label' => 'Masquées',
-        'icon' => 'eye-off',
-        'tone' => 'gray',
-    ]);
+    // « completed » (Terminée) et « expired » (Expirée) sont des statuts
+    // dérivés du temps, pas des valeurs stockées : ils sont proposés comme
+    // filtres mais ne correspondent à aucune valeur en base. « Masquées »
+    // est un filtre d'affichage : ces réservations sont conservées mais
+    // retirées de la liste par défaut.
+    $filterOptions = collect($statuses)
+        ->only(['pending', 'confirmed', 'completed', 'rejected', 'cancelled', 'expired'])
+        ->put('hidden', [
+            'label' => 'Masquées',
+            'icon' => 'eye-off',
+            'tone' => 'gray',
+        ]);
     $activeStatus = $filterOptions->has(request('status')) ? request('status') : null;
     $searchTerm = trim((string) request('search', ''));
     $hasFilters = $activeStatus !== null || $searchTerm !== '';
@@ -60,6 +62,19 @@
                 {{ $reservations->total() }} {{ $reservations->total() > 1 ? 'réservations' : 'réservation' }}
             </p>
         @endunless
+    </div>
+
+    {{-- Légende des actions (purement informative : aucun déclenchement) --}}
+    <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-coffee/10 bg-cream/70 px-4 py-2.5 text-xs text-charcoal/60">
+        <span class="font-semibold uppercase tracking-wider text-charcoal/40">Légende</span>
+        <span class="inline-flex items-center gap-1.5"><x-lucide-circle-check class="h-3.5 w-3.5 text-emerald-600" /> Confirmer</span>
+        <span class="inline-flex items-center gap-1.5"><x-lucide-circle-x class="h-3.5 w-3.5 text-red-600" /> Rejeter</span>
+        <span class="inline-flex items-center gap-1.5"><x-lucide-calendar-x class="h-3.5 w-3.5 text-coffee/60" /> Annuler</span>
+        <span class="inline-flex items-center gap-1.5"><x-lucide-user-check class="h-3.5 w-3.5 text-emerald-600" /> Marquer présent</span>
+        <span class="inline-flex items-center gap-1.5"><x-lucide-user-x class="h-3.5 w-3.5 text-red-600" /> Marquer absent</span>
+        <span class="inline-flex items-center gap-1.5"><x-lucide-circle-slash class="h-3.5 w-3.5 text-amber-dark" /> Excuser l'absence</span>
+        <span class="inline-flex items-center gap-1.5"><x-lucide-eye-off class="h-3.5 w-3.5 text-charcoal/50" /> Masquer</span>
+        <span class="inline-flex items-center gap-1.5"><x-lucide-ellipsis class="h-3.5 w-3.5 text-coffee" /> Menu des actions</span>
     </div>
 
     {{-- Recherche & filtre --}}
@@ -130,25 +145,32 @@
             @endif
         </div>
     @else
-        {{-- Tableau (écrans moyens et plus) --}}
-        <div class="mt-6 hidden overflow-hidden rounded-2xl border border-coffee/10 bg-white shadow-sm md:block">
-            <table class="min-w-full divide-y divide-coffee/10">
-                <thead class="bg-cream/60">
+        {{-- Tableau (écrans moyens et plus ; les cartes mobiles le remplacent en dessous) --}}
+        {{--
+            Le conteneur ne doit JAMAIS rogné le contenu : `overflow-x-auto`
+            offre un défilement horizontal uniquement quand c'est nécessaire,
+            et `min-w-[1120px]` évite la compression des colonnes. Le menu
+            d'actions, lui, est téléporté hors de ce conteneur.
+        --}}
+        <div class="mt-6 hidden rounded-2xl border border-coffee/10 bg-white shadow-sm md:block">
+            <div class="overflow-x-auto rounded-2xl">
+            <table class="w-full min-w-[1120px] divide-y divide-coffee/10">
+                <thead class="border-b border-coffee/10 bg-cream/60">
                     <tr>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Client</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Date</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Heure</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Personnes</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Table</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Demande spéciale</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Statut</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Présence</th>
-                        <th scope="col" class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-charcoal/50">Actions</th>
+                        <th scope="col" class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Client</th>
+                        <th scope="col" class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Date</th>
+                        <th scope="col" class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Heure</th>
+                        <th scope="col" class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Personnes</th>
+                        <th scope="col" class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Table</th>
+                        <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Demande spéciale</th>
+                        <th scope="col" class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Statut</th>
+                        <th scope="col" class="whitespace-nowrap px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-charcoal/50">Présence</th>
+                        <th scope="col" class="whitespace-nowrap px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-charcoal/50">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-coffee/10">
                     @foreach($reservations as $reservation)
-                        <tr class="transition-colors hover:bg-cream/40">
+                        <tr class="transition-colors hover:bg-cream/60">
                             <td class="px-4 py-3">
                                 <div class="font-semibold text-coffee">{{ $reservation->user->name }}</div>
                                 <div class="text-xs text-charcoal/50">{{ $reservation->user->email }}</div>
@@ -189,11 +211,11 @@
                                     <span class="text-charcoal/30">&mdash;</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3">
+                            <td class="whitespace-nowrap px-4 py-3">
                                 <x-reservation-status-badge :status="$reservation->displayStatus()" />
                             </td>
                             <td class="whitespace-nowrap px-4 py-3">
-                                @if ($reservation->canRecordAttendance())
+                                @if ($reservation->attendance !== \App\Models\Reservation::ATTENDANCE_UNKNOWN || $reservation->canRecordAttendance())
                                     <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {{ $attendanceTones[$reservation->attendance] ?? $attendanceTones['unknown'] }}">
                                         @svg('lucide-' . ($attendanceIcons[$reservation->attendance] ?? 'circle-help'), 'h-3.5 w-3.5 shrink-0')
                                         {{ $reservation->attendanceLabel() }}
@@ -202,13 +224,14 @@
                                     <span class="text-xs text-charcoal/30">&mdash;</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3">
-                                <x-reservation-actions :reservation="$reservation" :details="$details[$reservation->id]" />
+                            <td class="px-4 py-3 text-right">
+                                <x-reservation-actions :reservation="$reservation" />
                             </td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
+            </div>
         </div>
 
         {{-- Cartes (mobile) --}}
@@ -222,7 +245,7 @@
                         </div>
                         <div class="flex shrink-0 flex-col items-end gap-2">
                             <x-reservation-status-badge :status="$reservation->displayStatus()" />
-                            @if ($reservation->canRecordAttendance())
+                            @if ($reservation->attendance !== \App\Models\Reservation::ATTENDANCE_UNKNOWN || $reservation->canRecordAttendance())
                                 <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {{ $attendanceTones[$reservation->attendance] ?? $attendanceTones['unknown'] }}">
                                     @svg('lucide-' . ($attendanceIcons[$reservation->attendance] ?? 'circle-help'), 'h-3.5 w-3.5 shrink-0')
                                     {{ $reservation->attendanceLabel() }}
@@ -276,7 +299,7 @@
                     @endif
 
                     <div class="mt-4 flex items-center justify-end border-t border-coffee/10 pt-3">
-                        <x-reservation-actions :reservation="$reservation" :details="$details[$reservation->id]" />
+                        <x-reservation-actions :reservation="$reservation" />
                     </div>
                 </article>
             @endforeach

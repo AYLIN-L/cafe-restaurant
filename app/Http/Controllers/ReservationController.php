@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ReservationCreatedMail;
 use App\Models\Reservation;
 use App\Models\Table;
 use App\Models\User;
@@ -10,6 +11,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -25,7 +27,8 @@ class ReservationController extends Controller
         $reservations = $user->reservations()
             ->with('table')
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('reservations.index', [
             'reservations' => $reservations,
@@ -234,6 +237,19 @@ class ReservationController extends Controller
             throw ValidationException::withMessages([
                 'reservation_date' => $this->dayTakenMessage(),
             ]);
+        }
+
+        // La réservation est enregistrée : l'e-mail est envoyé après le
+        // commit de la transaction métier. Un échec d'envoi est journalisé
+        // sans remettre en cause la réservation.
+        $reservation->loadMissing('user');
+        $recipient = $reservation->user?->email;
+        if (is_string($recipient) && $recipient !== '') {
+            try {
+                Mail::to($recipient)->send(new ReservationCreatedMail($reservation));
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return redirect()->route('reservations.index')

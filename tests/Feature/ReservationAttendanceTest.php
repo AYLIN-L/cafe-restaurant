@@ -157,7 +157,7 @@ it('recomputes the absence count when the attendance changes', function () {
     expect($client->fresh()->absencesCount())->toBe(0);
 });
 
-it('does not count a hidden reservation as an absence', function () {
+it('keeps the absence count unchanged when a reservation is hidden', function () {
     $admin = attendanceAdmin();
     $client = attendanceClient();
 
@@ -165,8 +165,14 @@ it('does not count a hidden reservation as an absence', function () {
 
     expect($client->fresh()->absencesCount())->toBe(1);
 
-    // La réservation est masquée : elle sort du compteur.
+    // Le masquage ne retire JAMAIS une absence du compteur : seule une
+    // absence excusée en sort.
     $reservation->update(['hidden_at' => now()]);
+
+    expect($client->fresh()->absencesCount())->toBe(1);
+
+    // Seule l'excuse fait sortir l'absence du compteur, même masquée.
+    $reservation->update(['attendance' => Reservation::ATTENDANCE_EXCUSED]);
 
     expect($client->fresh()->absencesCount())->toBe(0);
 });
@@ -262,4 +268,115 @@ it('forbids a client from blocking an account', function () {
         ->assertForbidden();
 
     expect($other->fresh()->isBookingBlocked())->toBeFalse();
+});
+
+// ---------------------------------------------------------------------------
+// Créneau écoulé, transitions de présence et masquage
+// ---------------------------------------------------------------------------
+
+it('refuses to record attendance before the time slot has ended', function () {
+    $admin = attendanceAdmin();
+    $client = attendanceClient();
+
+    $reservation = attendanceReservation($client, [
+        'reservation_date' => now()->addDay()->toDateString(),
+    ]);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.attendance', $reservation), ['attendance' => Reservation::ATTENDANCE_PRESENT])
+        ->assertSessionHas('error');
+
+    expect($reservation->fresh()->attendance)->toBe(Reservation::ATTENDANCE_UNKNOWN)
+        ->and($client->fresh()->absencesCount())->toBe(0);
+});
+
+it('refuses to change a presence that has already been recorded', function () {
+    $admin = attendanceAdmin();
+    $client = attendanceClient();
+
+    $reservation = attendanceReservation($client);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.attendance', $reservation), ['attendance' => Reservation::ATTENDANCE_PRESENT])
+        ->assertSessionHas('success');
+
+    // Un clic involontaire ne doit pas transformer une présence en absence.
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.attendance', $reservation), ['attendance' => Reservation::ATTENDANCE_ABSENT])
+        ->assertSessionHas('error');
+
+    expect($reservation->fresh()->attendance)->toBe(Reservation::ATTENDANCE_PRESENT)
+        ->and($client->fresh()->absencesCount())->toBe(0);
+});
+
+it('refuses to excuse an absence that was never recorded', function () {
+    $admin = attendanceAdmin();
+    $client = attendanceClient();
+
+    // Présence enregistrée : on ne peut pas la remplacer par une excuse.
+    $present = attendanceReservation($client);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.attendance', $present), ['attendance' => Reservation::ATTENDANCE_PRESENT])
+        ->assertSessionHas('success');
+
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.attendance', $present), ['attendance' => Reservation::ATTENDANCE_EXCUSED])
+        ->assertSessionHas('error');
+
+    expect($present->fresh()->attendance)->toBe(Reservation::ATTENDANCE_PRESENT);
+});
+
+it('hides a confirmed reservation only once attendance is recorded', function () {
+    $admin = attendanceAdmin();
+    $client = attendanceClient();
+
+    $reservation = attendanceReservation($client); // créneau écoulé
+
+    // Présence non enregistrée : le masquage est refusé.
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.hide', $reservation))
+        ->assertSessionHas('error');
+
+    expect($reservation->fresh()->hidden_at)->toBeNull();
+
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.attendance', $reservation), ['attendance' => Reservation::ATTENDANCE_PRESENT])
+        ->assertSessionHas('success');
+
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.hide', $reservation))
+        ->assertSessionHas('success');
+
+    expect($reservation->fresh()->hidden_at)->not->toBeNull()
+        // La réservation n'est jamais supprimée.
+        ->and(Reservation::find($reservation->id))->not->toBeNull()
+        ->and($client->fresh()->absencesCount())->toBe(0);
+});
+
+it('keeps the absence threshold consistent when absences are hidden', function () {
+    $admin = attendanceAdmin();
+    $client = attendanceClient();
+    $threshold = (int) config('reservations.absence_threshold', 5);
+
+    for ($i = 0; $i < $threshold - 1; $i++) {
+        attendanceReservation($client, ['attendance' => Reservation::ATTENDANCE_ABSENT]);
+    }
+
+    $last = attendanceReservation($client);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.attendance', $last), ['attendance' => Reservation::ATTENDANCE_ABSENT])
+        ->assertSessionHas('success');
+
+    expect($client->fresh()->absencesCount())->toBe($threshold)
+        ->and($client->fresh()->isBookingBlocked())->toBeTrue();
+
+    // Le masquage d'une des absences ne modifie ni le compteur ni le blocage.
+    $this->actingAs($admin)
+        ->patch(route('admin.reservations.hide', $last))
+        ->assertSessionHas('success');
+
+    expect($client->fresh()->absencesCount())->toBe($threshold)
+        ->and($client->fresh()->isBookingBlocked())->toBeTrue();
 });

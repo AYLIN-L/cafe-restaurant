@@ -1,3 +1,5 @@
+@php($restaurant = config('restaurant'))
+
 <section id="hero"
     class="relative min-h-[calc(100vh-80px)] overflow-hidden bg-coffee bg-cover bg-center"
     style="background-image: url('{{ asset('images/hero-image1.jpg') }}');"
@@ -81,7 +83,7 @@
                         <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" />
                         <circle cx="12" cy="10" r="3" />
                     </svg>
-                    <span>42 XXX XXX</span>
+                    <span>{{ $restaurant['address']['line1'] }}, {{ $restaurant['address']['city'] }}</span>
                 </div>
 
                 {{-- Note clients --}}

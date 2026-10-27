@@ -9,8 +9,16 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 
 /**
- * Tests des compteurs et de l'occupation de la salle sur le tableau de bord.
+ * Tests des compteurs du tableau de bord.
+ *
+ * Les statistiques de la salle (tables, places, occupation) ne figurent plus
+ * ici : elles appartiennent à la gestion des tables (voir
+ * TableManagementStatsTest).
  */
+afterEach(function () {
+    Carbon::setTestNow();
+});
+
 it('renders the dashboard for admins', function () {
     $this->seed(TableSeeder::class);
     $admin = User::factory()->create(['role' => 'admin']);
@@ -18,10 +26,25 @@ it('renders the dashboard for admins', function () {
     $this->actingAs($admin)
         ->get(route('admin.dashboard'))
         ->assertOk()
-        ->assertSee('Tables occupées')
-        ->assertSee('Tables libres')
-        ->assertSee('Places assises libres')
-        ->assertSee('Clients sans réservation');
+        ->assertSee("Réservations aujourd'hui", false)
+        ->assertSee('Clients inscrits')
+        ->assertSee('Plats au menu')
+        ->assertSee('Catégories')
+        ->assertSee('Avis à modérer');
+});
+
+it('does not show the table statistics on the dashboard', function () {
+    $this->seed(TableSeeder::class);
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    // Les statistiques de la salle sont centralisées dans la gestion des
+    // tables : le tableau de bord ne les affiche plus.
+    $this->actingAs($admin)
+        ->get(route('admin.dashboard'))
+        ->assertOk()
+        ->assertDontSee('Tables occupées')
+        ->assertDontSee('Places assises libres')
+        ->assertDontSee('Clients sans réservation');
 });
 
 it('forbids clients from the dashboard', function () {
@@ -57,7 +80,41 @@ it('counts today reservations excluding cancelled and rejected ones', function (
     expect($todayCount)->toBe(2);
 });
 
+it('counts reservations on their reservation date and not on their creation date', function () {
+    $this->seed(TableSeeder::class);
+    $admin = User::factory()->create(['role' => 'admin']);
+    $client = User::factory()->create(['role' => 'client']);
+
+    // Créée aujourd'hui mais planifiée pour hier : elle ne compte pas
+    // dans les réservations du jour.
+    $past = Reservation::create([
+        'user_id' => $client->id,
+        'reservation_date' => now()->subDay()->toDateString(),
+        'reservation_time' => '12:00',
+        'guests_count' => 2,
+        'status' => Reservation::STATUS_CONFIRMED,
+    ]);
+    $past->forceFill(['created_at' => now()])->save();
+
+    // Créée il y a trois jours mais planifiée pour aujourd'hui : elle compte.
+    $today = Reservation::create([
+        'user_id' => $client->id,
+        'reservation_date' => now()->toDateString(),
+        'reservation_time' => '12:00',
+        'guests_count' => 2,
+        'status' => Reservation::STATUS_CONFIRMED,
+    ]);
+    $today->forceFill(['created_at' => now()->subDays(3)])->save();
+
+    $response = $this->actingAs($admin)->get(route('admin.dashboard'));
+
+    expect($response->viewData('todayCount'))->toBe(1);
+});
+
 it('counts week reservations excluding cancelled and rejected ones', function () {
+    // Mercredi : les trois jours suivants tombent dans la même semaine.
+    Carbon::setTestNow(Carbon::parse('2026-10-21 12:00:00'));
+
     $this->seed(TableSeeder::class);
     $admin = User::factory()->create(['role' => 'admin']);
     $client = User::factory()->create(['role' => 'client']);
@@ -88,39 +145,34 @@ it('counts week reservations excluding cancelled and rejected ones', function ()
     expect($response->viewData('weekCount'))->toBe(1);
 });
 
-it('reports the real-time occupancy of the room', function () {
-    $this->seed(TableSeeder::class);
-    $admin = User::factory()->create(['role' => 'admin']);
+it('counts the week from monday to sunday', function () {
+    // Mercredi 21 octobre 2026 : la semaine court du 19 au 25 octobre.
+    Carbon::setTestNow(Carbon::parse('2026-10-21 12:00:00'));
 
-    $this->actingAs($admin)->post(route('admin.walkins.store'), ['guests_count' => 2]);
-
-    $response = $this->actingAs($admin)->get(route('admin.dashboard'));
-
-    expect($response->viewData('occupiedTables'))->toBe(1)
-        ->and($response->viewData('freeTables'))->toBe($response->viewData('activeTables')->count() - 1)
-        ->and($response->viewData('activeWalkIns'))->toBe(1)
-        ->and($response->viewData('totalSeats'))->toBeGreaterThan(0)
-        ->and($response->viewData('seatsFree'))->toBeLessThan($response->viewData('totalSeats'));
-});
-
-it('does not count cancelled reservations as occupied tables', function () {
     $this->seed(TableSeeder::class);
     $admin = User::factory()->create(['role' => 'admin']);
     $client = User::factory()->create(['role' => 'client']);
-    $table = Table::where('number', 1)->first();
 
-    Reservation::create([
+    $create = fn (string $day) => Reservation::create([
         'user_id' => $client->id,
-        'table_id' => $table->id,
-        'reservation_date' => now()->toDateString(),
+        'reservation_date' => $day,
         'reservation_time' => '12:00',
         'guests_count' => 2,
-        'status' => Reservation::STATUS_CANCELLED,
+        'status' => Reservation::STATUS_CONFIRMED,
     ]);
+
+    // Lundi et dimanche de la semaine courante : comptés.
+    $create('2026-10-19');
+    $create('2026-10-25');
+
+    // Semaine précédente et semaine suivante : hors semaine courante.
+    $create('2026-10-18');
+    $create('2026-10-26');
 
     $response = $this->actingAs($admin)->get(route('admin.dashboard'));
 
-    expect($response->viewData('occupiedTables'))->toBe(0);
+    expect($response->viewData('weekCount'))->toBe(2)
+        ->and($response->viewData('todayCount'))->toBe(0);
 });
 
 it('shows five table states on the tables page', function () {

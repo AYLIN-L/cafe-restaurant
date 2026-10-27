@@ -5,7 +5,7 @@
         {{-- Lien retour --}}
         <a href="{{ route('admin.menus.index') }}"
            class="inline-flex items-center gap-1.5 text-sm font-medium text-charcoal/60 transition hover:text-amber-dark">
-            <x-icon name="arrow-right" class="h-4 w-4 rotate-180" />
+            <x-lucide-arrow-right class="h-4 w-4 rotate-180" />
             Retour aux plats
         </a>
 
@@ -46,7 +46,7 @@
                             href="{{ route('admin.categories.create') }}"
                             class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-600 transition duration-200 hover:border-emerald-500 hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                         >
-                            <x-icon name="plus" class="h-3.5 w-3.5" />
+                            <x-lucide-plus class="h-3.5 w-3.5" />
                             Ajouter une catégorie
                         </a>
                     </div>
@@ -72,7 +72,7 @@
 
                     @if ($categories->isEmpty())
                         <p class="mt-2 flex items-center gap-1.5 text-xs text-charcoal/50">
-                            <x-icon name="tag" class="h-3.5 w-3.5" />
+                            <x-lucide-tag class="h-3.5 w-3.5" />
                             Aucune catégorie pour le moment. Créez-en une avec le bouton ci-dessus.
                         </p>
                     @endif
@@ -187,7 +187,7 @@
                         type="submit"
                         class="inline-flex items-center justify-center gap-2 rounded-xl bg-coffee px-6 py-3 text-sm font-semibold text-cream shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-amber-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-light"
                     >
-                        <x-icon name="plus" class="h-4 w-4" />
+                        <x-lucide-plus class="h-4 w-4" />
                         Créer le plat
                     </button>
                 </div>

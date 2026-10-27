@@ -43,7 +43,37 @@ class TableController extends Controller
             ->latest('seated_at')
             ->get();
 
-        return view('admin.tables.index', compact('tables', 'activeWalkIns', 'now'));
+        // États réels de chaque table (calculés une seule fois, à partir des
+        // relations déjà chargées).
+        $states = $tables->mapWithKeys(fn (Table $table) => [$table->id => $table->stateAt($now)]);
+
+        // Statistiques de la salle : unique source de vérité. Le tableau de
+        // bord n'affiche plus ces chiffres, la gestion des tables les porte
+        // désormais toutes.
+        $inService = $tables->filter(fn (Table $table) => $table->is_active);
+
+        $stats = [
+            // Tables
+            'tablesTotal' => $tables->count(),
+            'tablesActive' => $inService->count(),
+            'tablesInactive' => $tables->count() - $inService->count(),
+
+            // Places : les tables en service font référence, le total de la
+            // salle (tables hors service incluses) est indiqué en second.
+            'seatsActive' => (int) $inService->sum('capacity'),
+            'seatsTotal' => (int) $tables->sum('capacity'),
+
+            // Occupation en temps réel
+            'occupied' => $states->filter(fn ($state) => in_array($state, [Table::STATE_WALK_IN, Table::STATE_OCCUPIED], true))->count(),
+            'reserved' => $states->filter(fn ($state) => $state === Table::STATE_RESERVED)->count(),
+            'free' => $states->filter(fn ($state) => $state === Table::STATE_FREE)->count(),
+            'seatsFree' => (int) $tables->filter(fn (Table $table) => $states[$table->id] === Table::STATE_FREE)->sum('capacity'),
+
+            // Clients installés sans réservation
+            'walkIns' => $activeWalkIns->count(),
+        ];
+
+        return view('admin.tables.index', compact('tables', 'activeWalkIns', 'now', 'states', 'stats'));
     }
 
     // Affiche le formulaire de création d'une table.

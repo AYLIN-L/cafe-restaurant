@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/menu', [MenuController::class, 'index'])->name('menu.index'); // catalogue complet
 Route::get('/menu/{menu}', [MenuController::class, 'show'])->name('menu.show'); // détails + commentaires
-Route::get('/contact', fn () => redirect()->to('/#contact'))->name('contact.create');
+Route::get('/contact', [ContactController::class, 'index'])->name('contact.create');
+Route::post('/contact', [ContactController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('contact.store');
 
 // ---------- Client connecté ----------
 Route::middleware('auth')->group(function () {
@@ -25,7 +28,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');
 
     Route::post('/menu/{menu}/comments', [CommentController::class, 'store'])->name('comments.store');
-    Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 
     // profil Breeze
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -49,17 +49,20 @@ class User extends Authenticatable
     }
 
     /**
-     * Nombre d'absences vérifiées du client.
+     * Nombre d'absences non excusées du client.
      *
      * Le compteur est toujours DÉRIVÉ des réservations : il ne peut donc
-     * jamais être incrémenté deux fois pour une même réservation. Les
-     * réservations masquées sont exclues.
+     * jamais être incrémenté deux fois pour une même réservation.
+     *
+     * MASQUER UNE RÉSERVATION NE MODIFIE JAMAIS CE COMPTEUR : seules les
+     * absences « excusées » en sortent. L'historique masqué reste donc
+     * compté, ce qui garde le seuil de blocage cohérent avec les absences
+     * réellement non excusées.
      */
     public function absencesCount(): int
     {
         return $this->reservations()
             ->where('attendance', Reservation::ATTENDANCE_ABSENT)
-            ->whereNull('hidden_at')
             ->count();
     }
 

@@ -13,7 +13,7 @@ export default {
     theme: {
         extend: {
             colors: {
-                coffee: '#3B2314',     // Coffee Brown
+                coffee: '#3B2314',     // Coffee Brown 
                 amber: {
                     DEFAULT: '#D97706', // Golden Amber → bg-amber
                     dark: '#B45309',    // → bg-amber-dark

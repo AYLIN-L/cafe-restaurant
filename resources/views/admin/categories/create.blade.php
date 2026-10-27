@@ -5,7 +5,7 @@
         {{-- Lien retour --}}
         <a href="{{ route('admin.categories.index') }}"
            class="inline-flex items-center gap-1.5 text-sm font-medium text-charcoal/60 transition hover:text-amber-dark">
-            <x-icon name="arrow-right" class="h-4 w-4 rotate-180" />
+            <x-lucide-arrow-right class="h-4 w-4 rotate-180" />
             Retour aux catégories
         </a>
 
@@ -55,7 +55,7 @@
                         type="submit"
                         class="inline-flex items-center justify-center gap-2 rounded-xl bg-coffee px-6 py-3 text-sm font-semibold text-cream shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-amber-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-light"
                     >
-                        <x-icon name="plus" class="h-4 w-4" />
+                        <x-lucide-plus class="h-4 w-4" />
                         Créer la catégorie
                     </button>
                 </div>

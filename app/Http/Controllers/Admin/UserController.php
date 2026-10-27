@@ -33,11 +33,11 @@ class UserController extends Controller
             ->when($filter === 'unblocked', fn ($query) => $query->whereNull('booking_blocked_at'))
             ->withCount([
                 'reservations',
-                // Absences vérifiées : le compteur est toujours dérivé des
-                // réservations, il ne peut donc pas être compté deux fois.
+                // Absences non excusées : le compteur est toujours dérivé
+                // des réservations. Le masquage n'a aucun effet sur lui :
+                // seules les absences excusées en sont retirées.
                 'reservations as absences_count' => fn ($query) => $query
-                    ->where('attendance', Reservation::ATTENDANCE_ABSENT)
-                    ->whereNull('hidden_at'),
+                    ->where('attendance', Reservation::ATTENDANCE_ABSENT),
             ])
             ->withMax('reservations', 'reservation_date')
             ->orderBy('name')

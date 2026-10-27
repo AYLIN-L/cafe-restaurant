@@ -12,7 +12,7 @@ class CategoryController extends Controller
     // Affiche les catégories et le nombre de plats associés.
     public function index()
     {
-        $categories = Category::withCount('menus')->paginate(10);
+        $categories = Category::withCount('menus')->paginate(10)->withQueryString();
 
         return view('admin.categories.index', compact('categories'));
     }

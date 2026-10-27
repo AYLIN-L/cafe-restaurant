@@ -7,61 +7,39 @@ use App\Models\Category;
 use App\Models\Comment;
 use App\Models\Menu;
 use App\Models\Reservation;
-use App\Models\Table;
 use App\Models\User;
-use App\Models\WalkIn;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
-    // Affiche les statistiques principales de l'administration.
+    /**
+     * Affiche les statistiques principales de l'administration.
+     *
+     * Les statistiques de la salle (tables, places, occupation) ne font pas
+     * partie de ce tableau de bord : elles sont calculées et affichées par
+     * le contrôleur des tables, qui en est l'unique source de vérité.
+     */
     public function index()
     {
-        $now = now();
+        // Le restaurant travaille en heure de Casablanca : la journée métier
+        // et la semaine sont calculées dans ce fuseau, jamais en UTC.
+        $now = Carbon::now(config('app.timezone'));
 
-        // Les réservations annulées ou refusées ne représentent aucune
-        // activité : elles sont exclues des compteurs.
-        $todayCount = Reservation::whereDate('reservation_date', $now->toDateString())
-            ->whereNotIn('status', ['cancelled', 'rejected'])
-            ->count();
+        // Une réservation annulée, refusée ou expirée ne représente aucune
+        // activité : seuls les statuts « actifs » comptent (règle métier).
+        // Le comptage porte sur la DATE DE RÉSERVATION (reservation_date),
+        // pas sur la date de création de la demande.
+        $todayCount = Reservation::active()->forDate($now)->count();
 
-        $weekCount = Reservation::whereBetween('reservation_date', [
-            $now->copy()->startOfWeek()->toDateString(),
-            $now->copy()->endOfWeek()->toDateString(),
-        ])
-            ->whereNotIn('status', ['cancelled', 'rejected'])
-            ->count();
+        // Semaine métier : du lundi au dimanche, bornes incluses.
+        $weekStart = $now->copy()->startOfWeek(CarbonInterface::MONDAY);
+        $weekEnd = $now->copy()->endOfWeek(CarbonInterface::SUNDAY);
 
+        $weekCount = Reservation::active()->scheduledBetween($weekStart, $weekEnd)->count();
+
+        // Demandes qui attendent encore une décision : toutes dates.
         $pendingReservations = Reservation::where('status', Reservation::STATUS_PENDING)->count();
-
-        // Occupation de la salle en temps réel.
-        $activeTables = Table::where('is_active', true)
-            ->with([
-                'reservations' => fn ($query) => $query
-                    ->confirmed()
-                    ->whereDate('reservation_date', $now->toDateString()),
-                'walkIns' => fn ($query) => $query->where(function ($query) {
-                    // Un client non libéré reste installé indéfiniment.
-                    $query->whereNull('released_at')
-                        ->orWhere('released_at', '>=', now()->subDay());
-                }),
-            ])
-            ->get();
-
-        $occupiedTables = $activeTables
-            ->filter(fn (Table $table) => in_array($table->stateAt($now), [Table::STATE_WALK_IN, Table::STATE_OCCUPIED], true))
-            ->count();
-
-        $freeTables = $activeTables
-            ->filter(fn (Table $table) => $table->stateAt($now) === Table::STATE_FREE)
-            ->count();
-
-        $seatsFree = $activeTables
-            ->filter(fn (Table $table) => $table->stateAt($now) === Table::STATE_FREE)
-            ->sum('capacity');
-
-        $totalSeats = $activeTables->sum('capacity');
-
-        $activeWalkIns = WalkIn::active()->count();
 
         // Classement des plats les plus commentés : seuls les avis approuvés
         // (donc publics) sont pris en compte.
@@ -82,12 +60,6 @@ class DashboardController extends Controller
             'todayCount',
             'weekCount',
             'pendingReservations',
-            'occupiedTables',
-            'freeTables',
-            'seatsFree',
-            'totalSeats',
-            'activeTables',
-            'activeWalkIns',
             'topMenus',
             'totalMenus',
             'availableMenus',
