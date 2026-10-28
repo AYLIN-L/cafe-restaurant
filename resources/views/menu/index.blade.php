@@ -168,22 +168,18 @@
             <form
                 method="GET"
                 action="{{ route('menu.index') }}"
-                x-data="{ search: @js($searchTerm) }"
-                class="menu-reveal relative z-10 mx-auto -mt-5 max-w-2xl sm:-mt-6"
+                class="menu-reveal relative z-10 mx-auto -mt-5 flex max-w-3xl flex-col gap-2 sm:-mt-6 sm:flex-row sm:items-center sm:gap-2"
                 style="--d: .1s"
             >
 
                 {{-- Conserver la catégorie pendant la recherche --}}
                 @if ($activeCategory)
-                    <input type="hidden"
-                           name="category"
-                           value="{{ $activeCategory }}">
+                    <input type="hidden" name="category" value="{{ $activeCategory }}">
                 @endif
 
-                <div class="group relative rounded-full bg-white shadow-[0_10px_40px_-16px_rgba(59,35,20,0.28)] ring-1 ring-coffee/10 transition duration-200 focus-within:ring-2 focus-within:ring-amber/70">
-
+                <div class="relative flex-1">
                     {{-- Icône de recherche --}}
-                    <svg class="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-coffee/40 transition-colors duration-200 group-focus-within:text-amber-dark"
+                    <svg class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-coffee/40"
                          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="11" cy="11" r="7"/>
@@ -191,32 +187,34 @@
                     </svg>
 
                     <input
-                        type="text"
+                        type="search"
                         name="q"
-                        x-model="search"
-                        @input.debounce.400ms="$el.form.requestSubmit()"
+                        value="{{ $searchTerm }}"
                         placeholder="Rechercher un plat, une boisson..."
                         aria-label="Rechercher un plat ou une boisson"
-                        class="w-full rounded-full border-0 bg-transparent py-4 pl-14 pr-12 text-sm text-coffee placeholder:text-coffee/40 focus:outline-none focus:ring-0 sm:py-[1.05rem] sm:text-[15px]"
+                        class="w-full rounded-full border border-coffee/10 bg-white py-3 pl-11 pr-4 text-sm text-coffee shadow-[0_10px_40px_-16px_rgba(59,35,20,0.28)] placeholder:text-coffee/40 focus:border-amber/60 focus:outline-none focus:ring-2 focus:ring-amber/30 sm:py-3.5"
                     >
-
-                    {{-- Effacer la recherche --}}
-                    <button
-                        type="button"
-                        x-show="search && search.length > 0"
-                        x-cloak
-                        x-transition.opacity.duration.150ms
-                        @click="search = ''; $el.form.requestSubmit()"
-                        class="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-coffee/45 transition duration-150 hover:bg-coffee/5 hover:text-coffee"
-                        aria-label="Effacer la recherche"
-                    >
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M18 6 6 18M6 6l12 12"/>
-                        </svg>
-                    </button>
-
                 </div>
+
+                <button
+                    type="submit"
+                    class="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-coffee px-5 text-sm font-semibold text-cream transition duration-150 hover:bg-amber-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-amber/40"
+                    aria-label="Lancer la recherche"
+                >
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"/>
+                        <path d="m21 21-4.3-4.3"/>
+                    </svg>
+                    Rechercher
+                </button>
+
+                <a
+                    href="{{ route('menu.index') }}"
+                    class="inline-flex h-11 items-center justify-center rounded-full border border-coffee/15 bg-white px-5 text-sm font-medium text-coffee transition duration-150 hover:border-amber/60 hover:bg-cream/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber/40"
+                >
+                    Réinitialiser
+                </a>
 
             </form>
 
@@ -395,7 +393,7 @@
                     </h2>
 
                     <p class="mx-auto mt-3 max-w-md text-sm leading-6 text-coffee/60">
-                        Essayez un autre terme de recherche ou sélectionnez une autre catégorie pour découvrir notre carte.
+                        Aucun résultat ne correspond à votre recherche. Essayez un autre terme ou réinitialisez les filtres.
                     </p>
 
                     <a
