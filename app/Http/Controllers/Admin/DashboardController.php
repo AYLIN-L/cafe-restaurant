@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Comment;
+use App\Models\ContactMessage;
 use App\Models\Menu;
 use App\Models\Reservation;
 use App\Models\User;
@@ -15,15 +16,11 @@ class DashboardController extends Controller
 {
     /**
      * Affiche les statistiques principales de l'administration.
-     *
-     * Les statistiques de la salle (tables, places, occupation) ne font pas
-     * partie de ce tableau de bord : elles sont calculées et affichées par
-     * le contrôleur des tables, qui en est l'unique source de vérité.
+     
      */
     public function index()
     {
-        // Le restaurant travaille en heure de Casablanca : la journée métier
-        // et la semaine sont calculées dans ce fuseau, jamais en UTC.
+         
         $now = Carbon::now(config('app.timezone'));
 
         // Une réservation annulée, refusée ou expirée ne représente aucune
@@ -56,6 +53,10 @@ class DashboardController extends Controller
         // ni déjà rejetés (un avis rejeté est traité, il ne bloque plus la file).
         $pendingComments = Comment::pendingModeration()->count();
 
+        // Messages de contact pas encore traités (non lus, ou lus sans suite) :
+        // même logique que la notification de l'en-tête (composer).
+        $unprocessedContacts = ContactMessage::unprocessed()->count();
+
         return view('admin.dashboard', compact(
             'todayCount',
             'weekCount',
@@ -65,7 +66,8 @@ class DashboardController extends Controller
             'availableMenus',
             'totalCategories',
             'totalClients',
-            'pendingComments'
+            'pendingComments',
+            'unprocessedContacts'
         ));
     }
 }

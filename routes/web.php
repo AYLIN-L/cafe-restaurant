@@ -63,6 +63,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::patch('comments/{comment}/restore', [Admin\CommentController::class, 'restore'])->name('comments.restore');
     Route::delete('comments/{comment}', [Admin\CommentController::class, 'destroy'])->name('comments.destroy');
 
+    // Messages reçus via le formulaire de contact public.
+    Route::get('contacts', [Admin\ContactController::class, 'index'])->name('contacts.index');
+    Route::get('contacts/{contactMessage}', [Admin\ContactController::class, 'show'])->name('contacts.show');
+    Route::patch('contacts/{contactMessage}/status', [Admin\ContactController::class, 'updateStatus'])->name('contacts.status');
+    Route::delete('contacts/{contactMessage}', [Admin\ContactController::class, 'destroy'])->name('contacts.destroy');
+
     Route::get('users', [Admin\UserController::class, 'index'])->name('users.index');
     Route::patch('users/{user}/block', [Admin\UserController::class, 'block'])->name('users.block');
     Route::patch('users/{user}/unblock', [Admin\UserController::class, 'unblock'])->name('users.unblock');

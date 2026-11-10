@@ -3,10 +3,12 @@
 namespace App\Providers;
 
 use App\Models\Comment;
+use App\Models\ContactMessage;
 use App\Models\Reservation;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (app()->environment('production')) {
+            URL::forceScheme('https');
+        }
         // Pagination : la vue « coffee » (thème café-restaurant de la page
         // Menu publique) devient la vue par défaut de TOUTES les listes
         // paginées — admin réservations, plats, catégories, commentaires,
@@ -37,6 +42,7 @@ class AppServiceProvider extends ServiceProvider
             $view->with([
                 'pendingReservations' => Reservation::where('status', Reservation::STATUS_PENDING)->count(),
                 'pendingComments' => Comment::pendingModeration()->count(),
+                'unprocessedContacts' => ContactMessage::unprocessed()->count(),
             ]);
         });
     }

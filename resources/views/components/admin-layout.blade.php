@@ -13,6 +13,7 @@
         'Clientèle' => [
             ['label' => 'Réservations',    'route' => 'admin.reservations.index', 'match' => 'admin.reservations.*', 'icon' => 'calendar-days'],
             ['label' => 'Commentaires',    'route' => 'admin.comments.index',     'match' => 'admin.comments.*',     'icon' => 'message-square'],
+            ['label' => 'Messages',        'route' => 'admin.contacts.index',     'match' => 'admin.contacts.*',     'icon' => 'mail'],
             ['label' => 'Clients',         'route' => 'admin.users.index',        'match' => 'admin.users.*',        'icon' => 'users'],
         ],
         'Salle' => [
@@ -144,6 +145,20 @@
                     <span class="hidden text-xs font-semibold sm:inline">Commentaires</span>
                     <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold
                                  {{ $pendingComments > 0 ? 'bg-amber text-white' : 'bg-coffee/10 text-charcoal/60' }}">{{ $pendingComments }}</span>
+                </a>
+
+                {{-- Messages de contact pas encore traités (non lus ou lus sans suite) --}}
+                <a href="{{ route('admin.contacts.index') }}"
+                   title="Messages de contact pas encore traités"
+                   aria-label="{{ $unprocessedContacts }} message{{ $unprocessedContacts > 1 ? 's' : '' }} de contact pas encore traité{{ $unprocessedContacts > 1 ? 's' : '' }}"
+                   class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 transition
+                          {{ $unprocessedContacts > 0
+                                ? 'border-amber/40 bg-amber/10 text-amber-dark hover:bg-amber/20'
+                                : 'border-coffee/10 bg-white text-charcoal/50 hover:border-coffee/25' }}">
+                    <x-lucide-mail class="h-4 w-4" />
+                    <span class="hidden text-xs font-semibold sm:inline">Messages</span>
+                    <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold
+                                 {{ $unprocessedContacts > 0 ? 'bg-amber text-white' : 'bg-coffee/10 text-charcoal/60' }}">{{ $unprocessedContacts }}</span>
                 </a>
             </div>
 

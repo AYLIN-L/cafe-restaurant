@@ -210,6 +210,29 @@
                         </span>
                         <x-lucide-arrow-right class="h-4 w-4 text-charcoal/40 transition duration-300 group-hover:translate-x-0.5 group-hover:text-amber-dark" />
                     </a>
+
+                    {{-- Messages de contact pas encore traités --}}
+                    <a href="{{ route('admin.contacts.index') }}"
+                       class="group flex items-center gap-4 rounded-xl p-3 transition-colors hover:bg-cream">
+                        <span class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber/10 text-amber-dark">
+                            <x-lucide-mail class="h-5 w-5" />
+                            @if($unprocessedContacts > 0)
+                                <span class="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
+                                    <span class="absolute inline-flex h-full w-full rounded-full bg-amber opacity-60 motion-safe:animate-ping"></span>
+                                    <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber"></span>
+                                </span>
+                            @endif
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block text-sm font-semibold text-coffee">
+                                {{ $unprocessedContacts }} message{{ $unprocessedContacts > 1 ? 's' : '' }} de contact à traiter
+                            </span>
+                            <span class="block text-xs text-charcoal/60">
+                                {{ $unprocessedContacts > 0 ? 'Lire, traiter ou supprimer' : 'Tous les messages sont traités' }}
+                            </span>
+                        </span>
+                        <x-lucide-arrow-right class="h-4 w-4 text-charcoal/40 transition duration-300 group-hover:translate-x-0.5 group-hover:text-amber-dark" />
+                    </a>
                 </div>
             </section>
 
